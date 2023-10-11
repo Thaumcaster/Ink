@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <random>
 
-#define GL_BGR GL_NOP
+#define GL_BGR GL_NOR
 
 const int WWIDTH = 1000, WHEIGHT = 1000;
 enum drawStates{ point, line, bezier, circle, easyCircle, triangle, quadrilateral, parallelogram };
