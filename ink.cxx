@@ -3,11 +3,15 @@
 #include <cmath>
 #include <stdlib.h>
 #include <random>
+#include <GL/glut.h>
 
 #define GL_BGR GL_NOR
 
-const int WWIDTH = 1000, WHEIGHT = 1000;
 enum drawStates{ point, line, bezier, circle, easyCircle, triangle, quadrilateral, parallelogram };
+
+// Current Window width and height
+int wwidth = 500;
+int wheight = 500;
 
 int drawState = point;
 bool filled = false;
@@ -84,6 +88,7 @@ void copy(float destination[], float source[]){
 }
 
 void drawPoint(float x_, float y_){
+    std::cout << "x = " << x_ << "\n" << "y = " << y_ << "\n";
     glPointSize(brushSize);
     glColor3fv(c);
     glBegin(GL_POINTS);
@@ -194,31 +199,43 @@ void drawCurve(){
 }
 
 void display(){
-    
+   //glClearColor(0,0,0,0);
+   //glClear(GL_COLOR_BUFFER_BIT);
+   //glutSwapBuffers();
+}
+
+void on_resize(int w, int h){
+    wwidth = w;
+    wheight = h;
+    glViewport(0, 0, w, h);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0, w, 0, h);
+    glMatrixMode(GL_MODELVIEW);
 }
 
 void init(){
-    gluOrtho2D(0,WWIDTH,0,WHEIGHT);
+    gluOrtho2D(0,wwidth,0,wheight);
 }
 
 void save(){
-    int* buffer = new int[WWIDTH * WHEIGHT * 3];
-    glReadPixels(0, 0, WWIDTH, WHEIGHT, GL_BGR, GL_UNSIGNED_BYTE, buffer);
+    int* buffer = new int[wwidth * wheight * 3];
+    glReadPixels(0, 0, wwidth, wheight, GL_BGR, GL_UNSIGNED_BYTE, buffer);
     FILE *out = fopen("image.tga", "w");
-    short TGAhead[] = {0, 2, 0, 0, 0, 0, WWIDTH, WHEIGHT, 24};
+    short TGAhead[] = {0, 2, 0, 0, 0, 0, (short)wwidth, (short)wheight, 24};
     fwrite(&TGAhead, sizeof(TGAhead), 1, out);
-    fwrite(buffer, 3 * WWIDTH * WHEIGHT, 1, out);
+    fwrite(buffer, 3 * wwidth * wheight, 1, out);
     fclose(out);
 }
 
 void load(){
     FILE *out = fopen("image.tga", "r");
     if (out){
-    short TGAhead[] = {0, 2, 0, 0, 0, 0, WWIDTH, WHEIGHT, 24};
-    int* buffer = new int[WWIDTH * WHEIGHT * 3];
+    short TGAhead[] = {0, 2, 0, 0, 0, 0, (short)wwidth, (short)wheight, 24};
+    int* buffer = new int[wwidth * wheight * 3];
     fread(&TGAhead, sizeof(TGAhead), 1, out);
-    fread(buffer, 3 * WWIDTH * WHEIGHT, 1, out);
-    glDrawPixels(WWIDTH, WHEIGHT, GL_BGR, GL_UNSIGNED_BYTE, buffer);
+    fread(buffer, 3 * wwidth * wheight, 1, out);
+    glDrawPixels(wwidth, wheight, GL_BGR, GL_UNSIGNED_BYTE, buffer);
     fclose(out);
     } else {
         std::cout << "File not found" << "\n";
@@ -316,9 +333,9 @@ void keyboard(unsigned char key, int x_, int y_){
             glColor3fv(c);
             glBegin(GL_POLYGON);
                 glVertex2i(0, 0);
-                glVertex2i(0, WHEIGHT);
-                glVertex2i(WWIDTH, WHEIGHT);
-                glVertex2i(WWIDTH, 0);
+                glVertex2i(0, wheight);
+                glVertex2i(wwidth, wheight);
+                glVertex2i(wwidth, 0);
             glEnd();
             glFlush();
             glutPostRedisplay();
@@ -489,22 +506,22 @@ void mouse(int button, int state, int x_, int y_){
     glFlush();
     if (freeDraw && drawState == point){
         previousPoint[0] = x_;
-        previousPoint[1] = WHEIGHT-y_;
+        previousPoint[1] = wheight-y_;
         glPointSize(1);
-        drawAdjPoint(x_,WHEIGHT-y_);
+        drawAdjPoint(x_,wheight-y_);
     }
     if (!freeDraw && button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
         switch (drawState){
             case point:
                 previousPoint[0] = x_;
-                previousPoint[1] = WHEIGHT-y_;
-                drawPoint(x_,WHEIGHT-y_);
+                previousPoint[1] = wheight-y_;
+                drawPoint(x_,wheight-y_);
                 break;
             case line:
                 if (lineCount < 2){
-                    drawPoint(x_, WHEIGHT-y_);
+                    drawPoint(x_, wheight-y_);
                     linePoints[lineCount][0] = x_;
-                    linePoints[lineCount][1] = WHEIGHT-y_;
+                    linePoints[lineCount][1] = wheight-y_;
                     lineCount++;
                 }
                 if (lineCount == 2){
@@ -515,9 +532,9 @@ void mouse(int button, int state, int x_, int y_){
             case bezier:
                 if (curveCount < controlCount+2){
                     if (curveCount < 2)
-                        drawPoint(x_, WHEIGHT-y_);
+                        drawPoint(x_, wheight-y_);
                     curvePoints[curveCount][0] = x_;
-                    curvePoints[curveCount][1] = WHEIGHT-y_;
+                    curvePoints[curveCount][1] = wheight-y_;
                     curveCount++;
                 }
                 if (curveCount == controlCount+2){
@@ -528,7 +545,7 @@ void mouse(int button, int state, int x_, int y_){
             case circle:
                 if (cCount < 2){
                     cPoints[cCount][0] = x_;
-                    cPoints[cCount][1] = WHEIGHT-y_;
+                    cPoints[cCount][1] = wheight-y_;
                     cCount++;
                 }
                 if (cCount == 2){
@@ -560,7 +577,7 @@ void mouse(int button, int state, int x_, int y_){
                 int x,y;
                 for(float d = 0; d<360;d+=.2){
                     x = x_+sin(d)*brushSize;
-                    y = WHEIGHT-y_+cos(d)*brushSize;
+                    y = wheight-y_+cos(d)*brushSize;
                     glVertex2f(x,y);
                 }
                 glEnd();
@@ -570,10 +587,10 @@ void mouse(int button, int state, int x_, int y_){
                 if (tCount < 3){
                     int temp = brushSize;
                     brushSize = 1;
-                    drawPoint(x_, WHEIGHT-y_);
+                    drawPoint(x_, wheight-y_);
                     brushSize = temp;
                     tPoints[tCount][0] = x_;
-                    tPoints[tCount][1] = WHEIGHT-y_;
+                    tPoints[tCount][1] = wheight-y_;
                     tCount++;
                 }
                 if (tCount > 1){
@@ -599,10 +616,10 @@ void mouse(int button, int state, int x_, int y_){
                 if (qCount < 4){
                     int temp = brushSize;
                     brushSize = 1;
-                    drawPoint(x_, WHEIGHT-y_);
+                    drawPoint(x_, wheight-y_);
                     brushSize = temp;
                     qPoints[qCount][0] = x_;
-                    qPoints[qCount][1] = WHEIGHT-y_;
+                    qPoints[qCount][1] = wheight-y_;
                     qCount++;
                 }
                 if (qCount > 1){
@@ -628,9 +645,9 @@ void mouse(int button, int state, int x_, int y_){
             case parallelogram:
                 if (pCount < 2){
                     glPointSize(1);
-                    drawAdjPoint(x_, WHEIGHT-y_);
+                    drawAdjPoint(x_, wheight-y_);
                     pPoints[pCount][0] = x_;
-                    pPoints[pCount][1] = WHEIGHT-y_;
+                    pPoints[pCount][1] = wheight-y_;
                     pCount++;
                 }
                 if (pCount == 2){
@@ -686,14 +703,14 @@ void mouseFree(int x_, int y_){
         switch (drawState){
             case point:
                 currentPoint[0] = x_; 
-                currentPoint[1] = WHEIGHT-y_;
+                currentPoint[1] = wheight-y_;
                 drawLine(currentPoint, previousPoint);
                 previousPoint[0] = x_; 
-                previousPoint[1] = WHEIGHT-y_;
+                previousPoint[1] = wheight-y_;
                 break;
             case easyCircle:
                 currentPoint[0] = x_; 
-                currentPoint[1] = WHEIGHT-y_;
+                currentPoint[1] = wheight-y_;
                 drawLine(currentPoint, previousPoint);
                 break;
             case circle:
@@ -709,7 +726,7 @@ void mouseFree(int x_, int y_){
                     x = x_+sin(d)*brushSize;
                     y = y_+cos(d)*brushSize;
                     //std::cout << "x,y = " << x <<", " << y << "\n";
-                    glVertex2f(x,WHEIGHT-y);
+                    glVertex2f(x,wheight-y);
                 }
                 glEnd();
                 break;
@@ -721,7 +738,7 @@ void mouseFree(int x_, int y_){
                     float randtx = x_ + rt * std::cos(thetat);
                     float randty = y_ + rt * std::sin(thetat);
                     tempt[i][0] = randtx;
-                    tempt[i][1] = WHEIGHT-randty;
+                    tempt[i][1] = wheight-randty;
                 }
                 glColor3fv(c);
                 glPointSize(1);
@@ -749,7 +766,7 @@ void mouseFree(int x_, int y_){
                     float randqx = x_ + rq * std::cos(thetaq);
                     float randqy = y_ + rq * std::sin(thetaq);
                     tempq[i][0] = randqx;
-                    tempq[i][1] = WHEIGHT-randqy;
+                    tempq[i][1] = wheight-randqy;
                 }
                 glColor3fv(c);
                 glPointSize(1);
@@ -776,18 +793,18 @@ void mouseFree(int x_, int y_){
                     glLineWidth(1);
                     glColor3fv(c);
                     glBegin(GL_POLYGON);
-                        glVertex2i(x_ - brushSize/2, WHEIGHT-y_ - brushSize/2);
-                        glVertex2i(x_ + brushSize/2, WHEIGHT-y_ - brushSize/2);
-                        glVertex2i(x_ + brushSize/2, WHEIGHT-y_ + brushSize/2);
-                        glVertex2i(x_ - brushSize/2, WHEIGHT-y_ + brushSize/2);
+                        glVertex2i(x_ - brushSize/2, wheight-y_ - brushSize/2);
+                        glVertex2i(x_ + brushSize/2, wheight-y_ - brushSize/2);
+                        glVertex2i(x_ + brushSize/2, wheight-y_ + brushSize/2);
+                        glVertex2i(x_ - brushSize/2, wheight-y_ + brushSize/2);
                     glEnd();
                 } else {
                     glLineWidth(1);
                     glColor3fv(c);
-                    drawAdjLine(x_ - brushSize/2, WHEIGHT-y_ - brushSize/2, x_ + brushSize/2, WHEIGHT-y_ - brushSize/2);
-                    drawAdjLine(x_ + brushSize/2, WHEIGHT-y_ + brushSize/2, x_ - brushSize/2, WHEIGHT-y_ + brushSize/2);
-                    drawAdjLine(x_ - brushSize/2, WHEIGHT-y_ - brushSize/2, x_ - brushSize/2, WHEIGHT-y_ + brushSize/2);
-                    drawAdjLine(x_ + brushSize/2, WHEIGHT-y_ + brushSize/2, x_ + brushSize/2, WHEIGHT-y_ - brushSize/2);
+                    drawAdjLine(x_ - brushSize/2, wheight-y_ - brushSize/2, x_ + brushSize/2, wheight-y_ - brushSize/2);
+                    drawAdjLine(x_ + brushSize/2, wheight-y_ + brushSize/2, x_ - brushSize/2, wheight-y_ + brushSize/2);
+                    drawAdjLine(x_ - brushSize/2, wheight-y_ - brushSize/2, x_ - brushSize/2, wheight-y_ + brushSize/2);
+                    drawAdjLine(x_ + brushSize/2, wheight-y_ + brushSize/2, x_ + brushSize/2, wheight-y_ - brushSize/2);
                 }
                 break;
             case line:
@@ -795,8 +812,8 @@ void mouseFree(int x_, int y_){
                 float thetal = ((float)std::rand()/(float)RAND_MAX) * 2 * M_PI;
                 float randlx = x_ + rl * std::cos(thetal);
                 float randly = y_ + rl * std::sin(thetal);
-                int templ2[2] = {x_, WHEIGHT-y_};
-                int templ[2] = {(int)randlx, (int)(WHEIGHT-randly)};
+                int templ2[2] = {x_, wheight-y_};
+                int templ[2] = {(int)randlx, (int)(wheight-randly)};
                 glPointSize(1);
                 glLineWidth(1);
                 drawAdjLine(templ2, templ);
@@ -882,7 +899,7 @@ void colorTimer(int value){
 
 int main(int argc, char* argv[]){
     glutInit(&argc, argv);
-    glutInitWindowSize(WWIDTH,WHEIGHT);
+    glutInitWindowSize(wwidth,wheight);
     glutCreateWindow("Ink");
     glClear(GL_COLOR_BUFFER_BIT);
     glFlush();
@@ -895,6 +912,7 @@ int main(int argc, char* argv[]){
     glutMotionFunc(mouseFree);
     glutDisplayFunc(display);
     glutTimerFunc(SLEEP_TIME, colorTimer, 0); // Animates screen given a specified time "refresh rate"
+    glutReshapeFunc(on_resize);
     glutMainLoop();
 
     return 0;
