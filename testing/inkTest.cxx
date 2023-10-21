@@ -916,8 +916,7 @@ int main(int argc, char* argv[]){
     glutMotionFunc(mouseFree);
     glutDisplayFunc(display);
     glutTimerFunc(SLEEP_TIME, colorTimer, 0); // Animates screen given a specified time "refresh rate"
-    glutReshapeWindow(wwidth, wheight);
-    //glutReshapeFunc(on_resize);
+    glutReshapeFunc(on_resize);
     glutMainLoop();
 
     return 0;
